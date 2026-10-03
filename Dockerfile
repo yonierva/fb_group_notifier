@@ -8,7 +8,7 @@ WORKDIR /app
 COPY . /app
 
 # Instalar dependencias de Python
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r requirements
 
 # Comando para iniciar el proceso continuo
 CMD ["python", "main.py"]
