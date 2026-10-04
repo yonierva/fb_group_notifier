@@ -23,36 +23,24 @@ def save_seen_posts(seen_set):
 
 
 def is_within_10_minutes(article):
-    """
-    Inspecciona los elementos de tiempo de la tarjeta de Facebook
-    para determinar si fue publicado hace <= 10 minutos.
-    """
     try:
-        # Obtenemos las primeras líneas del texto del post donde está el encabezado
         text = article.inner_text().strip()
         lines = [line.strip().lower() for line in text.split("\n") if line.strip()]
-
-        # Tomamos únicamente el encabezado (primeras 5 líneas)
         header_text = " ".join(lines[:5])
 
-        # 1. Si detecta horas (h), días (d), semanas o años en el encabezado, RECHAZAR de inmediato
         if re.search(r'\b\d+\s*h\b|\b\d+\s*d\b|hace\s+\d+\s+hora|hace\s+\d+\s+día|\b202\d\b', header_text):
             return False
 
-        # 2. Buscar indicador de minutos en el encabezado (ej: "1 min", "5m", "10 min")
         match = re.search(r'\b(\d+)\s*(min|m)\b', header_text)
         if match:
             minutes = int(match.group(1))
             return minutes <= 10
 
-        # 3. Buscar indicadores de publicación inmediata
         instant_keywords = ["justo ahora", "hace un momento", "ahora", "just now", "1 min"]
         if any(kw in header_text for kw in instant_keywords):
             return True
 
-        # Si no se encuentra una confirmación clara de <= 10 min en el encabezado, descartar por seguridad
         return False
-
     except Exception:
         return False
 
@@ -61,14 +49,14 @@ def check_group_posts_logged_in():
     new_posts = []
     seen_posts = load_seen_posts()
 
-    # Reconstruir facebook_cookies.json si viene desde las variables de entorno de la nube
+    # Reconstruir facebook_cookies.json si viene desde las variables de entorno
     fb_cookies_env = os.getenv("FB_COOKIES_JSON")
     if fb_cookies_env and not os.path.exists(COOKIES_FILE):
         with open(COOKIES_FILE, "w", encoding="utf-8") as f:
             f.write(fb_cookies_env)
 
     if not os.path.exists(COOKIES_FILE):
-        print("❌ No se encontró 'facebook_cookies.json'. Ejecuta primero 'python login_fb.py'")
+        print("❌ No se encontró 'facebook_cookies.json'. Ejecuta primero 'python login_fb.py'", flush=True)
         return []
 
     with sync_playwright() as p:
@@ -81,20 +69,30 @@ def check_group_posts_logged_in():
         )
         page = context.new_page()
 
-        print(f"🔍 Consultando grupo con sesión iniciada: {config.GROUP_URL}")
         try:
-            page.goto(config.GROUP_URL, wait_until="domcontentloaded", timeout=45000)
-            time.sleep(4)
+            print(f"🔍 Consultando grupo con sesión iniciada: {config.GROUP_URL}", flush=True)
+            page.goto(config.GROUP_URL, wait_until="networkidle", timeout=60000)
+            time.sleep(5)
 
-            # Scroll ligero solo para las publicaciones más recientes del tope
-            page.mouse.wheel(0, 1000)
+            # Imprimir el título real de la página que cargó Facebook
+            print(f"📄 Título de la página cargada: '{page.title()}'", flush=True)
+
+            # Scroll para forzar el renderizado
+            page.mouse.wheel(0, 1500)
             time.sleep(3)
 
             articles = page.locator('div[role="feed"] div[role="article"]').all()
             if not articles:
                 articles = page.locator('div[role="article"]').all()
 
-            print(f"📌 Publicaciones detectadas en pantalla: {len(articles)}")
+            print(f"📌 Publicaciones detectadas en pantalla: {len(articles)}", flush=True)
+
+            # Si da 0, averiguar si hay un bloqueo o selector alternativo
+            if len(articles) == 0:
+                print("⚠ No se detectaron publicaciones. Verificando si hay bloqueos...", flush=True)
+                alt_articles = page.locator('div[data-ad-preview="message"]').all()
+                if alt_articles:
+                    print(f"💡 Se encontraron {len(alt_articles)} posts con selector alternativo.", flush=True)
 
             for article in articles:
                 try:
@@ -102,17 +100,15 @@ def check_group_posts_logged_in():
                     if not text or len(text) < 20:
                         continue
 
-                    # 1. Filtro estricto por tiempo (solo <= 10 minutos)
                     if not is_within_10_minutes(article):
-                        print("⏩ Publicación omitida (supera los 10 minutos o no se confirmó antigüedad reciente).")
+                        print("⏩ Publicación omitida (supera los 10 minutos o no se confirmó antigüedad reciente).",
+                              flush=True)
                         continue
 
-                    # 2. Verificar duplicados
                     post_id = str(hash(text[:120]))
                     if post_id in seen_posts:
                         continue
 
-                    # 3. Filtro de palabras clave
                     text_lower = text.lower()
                     matches_keyword = True
                     if config.KEYWORDS:
@@ -128,7 +124,7 @@ def check_group_posts_logged_in():
             save_seen_posts(seen_posts)
 
         except Exception as e:
-            print(f"❌ Error durante la extracción: {e}")
+            print(f"❌ Error durante la extracción: {e}", flush=True)
         finally:
             browser.close()
 
