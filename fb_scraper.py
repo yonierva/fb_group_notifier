@@ -23,24 +23,38 @@ def save_seen_posts(seen_set):
 
 
 def is_within_10_minutes(article):
+    """
+    Analiza las marcas de tiempo en el encabezado de la publicación para
+    determinar si fue realizada en los últimos 10 minutos.
+    """
     try:
         text = article.inner_text().strip()
-        lines = [line.strip().lower() for line in text.split("\n") if line.strip()]
-        header_text = " ".join(lines[:5])
+        if not text:
+            return False
 
+        # Analizar hasta las primeras 8 líneas para capturar el tiempo de publicación
+        lines = [line.strip().lower() for line in text.split("\n") if line.strip()]
+        header_text = " ".join(lines[:8])
+
+        # 1. Descartar explícitamente horas (h), días (d), semanas o años pasados
         if re.search(r'\b\d+\s*h\b|\b\d+\s*d\b|hace\s+\d+\s+hora|hace\s+\d+\s+día|\b202\d\b', header_text):
             return False
 
-        match = re.search(r'\b(\d+)\s*(min|m)\b', header_text)
-        if match:
-            minutes = int(match.group(1))
-            return minutes <= 10
-
-        instant_keywords = ["justo ahora", "hace un momento", "ahora", "just now", "1 min"]
+        # 2. Buscar expresiones inmediatas
+        instant_keywords = ["justo ahora", "hace un momento", "ahora", "just now", "1 min", "1m"]
         if any(kw in header_text for kw in instant_keywords):
             return True
 
+        # 3. Capturar el número exacto de minutos (ej: "hace 7 min", "8m", "10 min")
+        minute_match = re.search(r'(?:hace\s+)?(\d+)\s*(?:min|m)\b', header_text)
+        if minute_match:
+            minutes = int(minute_match.group(1))
+            return minutes <= 10
+
+        # Si no se logra determinar con precisión la marca de tiempo en el encabezado,
+        # se descarta para prevenir falsos positivos antiguos.
         return False
+
     except Exception:
         return False
 
