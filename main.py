@@ -17,6 +17,7 @@ class HealthCheckHandler(BaseHTTPRequestHandler):
     def log_message(self, format, *args):
         return
 
+print("🚀 Bot de alertas de Facebook iniciado en Render...", flush=True)
 
 def start_health_check_server():
     # Obtener el puerto que asigna Render dinámicamente

@@ -1,6 +1,8 @@
 # Imagen oficial con Python y Playwright preinstalados
 FROM mcr.microsoft.com/playwright/python:v1.40.0-jammy
 
+ENV PYTHONUNBUFFERED=1
+
 # Crear directorio de trabajo
 WORKDIR /app
 
