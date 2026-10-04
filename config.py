@@ -8,8 +8,6 @@ load_dotenv()
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 
-print(TELEGRAM_TOKEN)
-print(TELEGRAM_CHAT_ID)
 # Configuración del Grupo Público de Facebook (Limpio y ordenado cronológicamente)
 GROUP_URL = "https://www.facebook.com/groups/855692978407532/?sorting_setting=CHRONOLOGICAL"
 
