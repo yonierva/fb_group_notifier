@@ -14,5 +14,5 @@ GROUP_URL = "https://www.facebook.com/groups/855692978407532/?sorting_setting=CH
 # Filtro de palabras clave (vacío [] para recibir todas)
 KEYWORDS = ["ciberseguridad", "security", "hacking", "curso", "descuento", "gratis","Hector Mendoza","Hector","Mendoza"]
 
-# Intervalo de revisión en segundos (900s = 15 min)
-CHECK_INTERVAL_SECONDS = 900
+# Intervalo de revisión en segundos (600s = 10 min)
+CHECK_INTERVAL_SECONDS = 600
